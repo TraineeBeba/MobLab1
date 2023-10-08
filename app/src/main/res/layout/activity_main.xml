@@ -31,10 +31,33 @@
         android:id="@+id/operandMargin"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@+id/editTextOperand1"
+        app:layout_constraintTop_toBottomOf="@+id/measurementSystemSpinner"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintWidth_percent="0.9" /> <!-- Adjust the width_percent as needed -->
+
+    <!-- Measurement System Spinner -->
+    <Spinner
+        android:id="@+id/measurementSystemSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:entries="@array/measurement_systems"
+        android:minHeight="48dp"
+        app:layout_constraintBottom_toTopOf="@+id/spinnerOperator"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+
+    <!-- Operator Spinner -->
+    <Spinner
+        android:id="@+id/spinnerOperator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:entries="@array/operators"
+        android:minHeight="48dp"
+        app:layout_constraintBaseline_toBaselineOf="@+id/editTextOperand1"
+        app:layout_constraintEnd_toStartOf="@+id/editTextOperand2"
+        app:layout_constraintStart_toEndOf="@+id/editTextOperand1" />
 
     <Button
         android:id="@+id/navigateButton"
@@ -56,18 +79,6 @@
         app:layout_constraintEnd_toStartOf="@+id/spinnerOperator"
         app:layout_constraintStart_toStartOf="@+id/operandMargin"
         app:layout_constraintTop_toBottomOf="@+id/topMargin" />
-
-
-    <!-- Operator Spinner -->
-    <Spinner
-        android:id="@+id/spinnerOperator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:entries="@array/operators"
-        android:minHeight="48dp"
-        app:layout_constraintBaseline_toBaselineOf="@+id/editTextOperand1"
-        app:layout_constraintEnd_toStartOf="@+id/editTextOperand2"
-        app:layout_constraintStart_toEndOf="@+id/editTextOperand1" />
 
     <!-- Operand 2 -->
     <EditText
