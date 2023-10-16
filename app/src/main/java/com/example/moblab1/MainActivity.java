@@ -1,11 +1,13 @@
 package com.example.moblab1;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,83 +19,77 @@ public class MainActivity extends AppCompatActivity {
     private EditText operand1EditText;
     private EditText operand2EditText;
     private Spinner operatorSpinner;
-    private Spinner measurementSystemSpinner; // Add Spinner for measurement system
+    private Spinner measurementSystemSpinner;
     private TextView resultTextView;
+
+    private int prevBase = 10;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initializeViews();
+        setListeners();
+        restoreSavedValues();
+    }
+
+    private void initializeViews() {
         operand1EditText = findViewById(R.id.editTextOperand1);
         operand2EditText = findViewById(R.id.editTextOperand2);
         operatorSpinner = findViewById(R.id.spinnerOperator);
         measurementSystemSpinner = findViewById(R.id.measurementSystemSpinner);
         resultTextView = findViewById(R.id.resultTextView);
+    }
 
-        // Retrieve and set operand values from SharedPreferences
-        operand1EditText.setText(getOperandValue("operand1"));
-        operand2EditText.setText(getOperandValue("operand2"));
+    private void setListeners() {
+        measurementSystemSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                String selectedBase = measurementSystemSpinner.getSelectedItem().toString();
+                updateOperandValues(selectedBase);
+            }
 
-        // Retrieve and set selected operator value from SharedPreferences
-        String savedOperator = getOperatorValue("operator");
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+                // Do nothing if nothing is selected.
+            }
+        });
+
+        Button calculateButton = findViewById(R.id.calculateButton);
+        calculateButton.setOnClickListener(v -> calculateResult());
+
+        Button navigateButton = findViewById(R.id.navigateButton);
+        navigateButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SecondActivity.class);
+            startActivity(intent);
+        });
+    }
+
+    private void restoreSavedValues() {
+        operand1EditText.setText(getSavedValue("operand1"));
+        operand2EditText.setText(getSavedValue("operand2"));
+
+        String savedOperator = getSavedValue("operator");
         int operatorPosition = ((ArrayAdapter<String>) operatorSpinner.getAdapter()).getPosition(savedOperator);
         operatorSpinner.setSelection(operatorPosition);
 
-        // Retrieve and set selected base (measurement system) value from SharedPreferences
-        String savedBase = getBaseValue("baseType");
+        String savedBase = getSavedValue("baseType");
         int basePosition = ((ArrayAdapter<String>) measurementSystemSpinner.getAdapter()).getPosition(savedBase);
         measurementSystemSpinner.setSelection(basePosition);
-
-        Button calculateButton = findViewById(R.id.calculateButton);
-        calculateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                calculateResult();
-            }
-        });
-
-        Button navigateButton = findViewById(R.id.navigateButton);
-        navigateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Create an Intent to start the SecondActivity
-                Intent intent = new Intent(MainActivity.this, SecondActivity.class);
-                startActivity(intent);
-            }
-        });
-
-        // Populate the measurement system Spinner
-        ArrayAdapter<CharSequence> measurementSystemAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.measurement_systems,
-                android.R.layout.simple_spinner_item
-        );
-        measurementSystemAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        measurementSystemSpinner.setAdapter(measurementSystemAdapter);
-
+        prevBase = convertBaseStringToInt(savedBase);
     }
 
-    private String getOperatorValue(String key) {
+    private String getSavedValue(String key) {
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
         return sharedPreferences.getString(key, "");
     }
 
-    private String getBaseValue(String key) {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
-        return sharedPreferences.getString(key, "");
-    }
-
-    private void saveToLocal(String key, String value) {
+    private void saveValue(String key, String value) {
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(key, value);
         editor.apply();
-    }
-
-    private String getOperandValue(String key) {
-        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", MODE_PRIVATE);
-        return sharedPreferences.getString(key, "");
     }
 
     private void calculateResult() {
@@ -102,41 +98,16 @@ public class MainActivity extends AppCompatActivity {
         String operator = operatorSpinner.getSelectedItem().toString();
         String selectedMeasurementSystem = measurementSystemSpinner.getSelectedItem().toString();
 
-        // Save operand, operator, and base (measurement system) values to SharedPreferences
-        saveToLocal("operand1", operand1Str);
-        saveToLocal("operand2", operand2Str);
-        saveToLocal("operator", operator); // Save selected operator
-        saveToLocal("baseType", selectedMeasurementSystem); // Save selected base (measurement system)
+        saveValue("operand1", operand1Str);
+        saveValue("operand2", operand2Str);
+        saveValue("operator", operator);
+        saveValue("baseType", selectedMeasurementSystem);
 
+        StringBuilder resultStrBuilder = new StringBuilder();
 
-        String resultStr;
-
-        switch (selectedMeasurementSystem) {
-            case "Base 2":
-                resultStr = calculate(operand1Str, operand2Str, operator, 2);
-                break;
-            case "Base 8":
-                resultStr = calculate(operand1Str, operand2Str, operator, 8);
-                break;
-            case "Base 10":
-                resultStr = calculate(operand1Str, operand2Str, operator, 10);
-                break;
-            case "Base 16":
-                resultStr = calculate(operand1Str, operand2Str, operator, 16);
-                break;
-            default:
-                resultTextView.setText("Invalid measurement system.");
-                return;
-        }
-
-        resultTextView.setText("Result: " + resultStr);
-    }
-
-    private String calculate(String operand1Str, String operand2Str, String operator, int base) {
         try {
-            // Parse operands based on the selected base
-            int operand1 = Integer.parseInt(operand1Str, base);
-            int operand2 = Integer.parseInt(operand2Str, base);
+            int operand1 = Integer.parseInt(operand1Str, prevBase);
+            int operand2 = Integer.parseInt(operand2Str, prevBase);
             int result = 0;
 
             switch (operator) {
@@ -153,17 +124,61 @@ public class MainActivity extends AppCompatActivity {
                     if (operand2 != 0) {
                         result = operand1 / operand2;
                     } else {
-                        return "Cannot divide by zero.";
+                        resultStrBuilder.append("Cannot divide by zero.\n");
+                        break;
                     }
                     break;
                 default:
-                    return "Invalid operator.";
+                    resultStrBuilder.append("Invalid operator.\n");
+                    break;
             }
 
-            // Convert the result back to a string in the selected base
-            return Integer.toString(result, base);
+            for (int base : new int[]{2, 8, 10, 16}) {
+                String resultInBase = Integer.toString(result, base);
+                resultStrBuilder.append("Result in base ").append(base).append(": ").append(resultInBase).append("\n");
+            }
         } catch (NumberFormatException e) {
-            return "Invalid operands.";
+            resultStrBuilder.append("Invalid operands.");
         }
+
+        resultTextView.setText(resultStrBuilder.toString());
+    }
+
+    @SuppressLint("SetTextI18n")
+    private void updateOperandValues(String selectedBase) {
+        int base = convertBaseStringToInt(selectedBase);
+
+        String operand1Str = operand1EditText.getText().toString();
+        String operand2Str = operand2EditText.getText().toString();
+
+        try {
+            int operand1 = Integer.parseInt(operand1Str, prevBase);
+            int operand2 = Integer.parseInt(operand2Str, prevBase);
+            operand1EditText.setText(Integer.toString(operand1, base));
+            operand2EditText.setText(Integer.toString(operand2, base));
+        } catch (NumberFormatException e) {
+            operand1EditText.setText("-");
+            operand2EditText.setText("-");
+        }
+        prevBase = base;
+    }
+
+    private int convertBaseStringToInt(String baseString) {
+        int base = prevBase;
+        switch (baseString) {
+            case "Base 2":
+                base = 2;
+                break;
+            case "Base 8":
+                base = 8;
+                break;
+            case "Base 10":
+                base = 10;
+                break;
+            case "Base 16":
+                base = 16;
+                break;
+        }
+        return base;
     }
 }
